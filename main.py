@@ -14,6 +14,8 @@ python main.py
 import argparse
 import pygame
 
+from ControllerInput import ControllerInput
+
 #
 # Parse any arguments passed in
 #
@@ -39,6 +41,12 @@ pygame.display.set_caption("Space Rocks")
 #
 fps = 55
 mpf = (1 / fps) * 1000
+
+#
+# Check for joysticks and controllers
+#
+show_controller_status = False
+controller_input = ControllerInput()
 
 #
 # Set up game elements
@@ -84,6 +92,10 @@ while not quit_game:
     # Draw the elements
     for element in elements:
         element.draw(screen)
+
+    # Draw any debug elements
+    if show_controller_status:
+        controller_input.show_current_state(screen)
 
     # Update the display to pick up what was drawn above for this frame
     pygame.display.update()
