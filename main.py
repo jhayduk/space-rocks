@@ -14,6 +14,7 @@ python main.py
 import argparse
 import pygame
 
+from Background import Background
 from ControllerInput import ControllerInput
 
 #
@@ -54,6 +55,12 @@ controller_input = ControllerInput()
 # These will be updated and drawn in the order they appear in the elements list
 #
 elements = []
+
+# ------------
+#  Background
+# ------------
+background = Background(screen)
+elements.append(background)
 
 #
 # Run the game loop
