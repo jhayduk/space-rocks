@@ -16,6 +16,7 @@ import pygame
 
 from Background import Background
 from ControllerInput import ControllerInput
+from Ship import Ship
 
 #
 # Parse any arguments passed in
@@ -32,7 +33,7 @@ pygame.init()
 #
 # Set up the game screen
 #
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode((800, 800))
 pygame.display.set_caption("Space Rocks")
 
 #
@@ -61,6 +62,12 @@ elements = []
 # ------------
 background = Background(screen)
 elements.append(background)
+
+# ------
+#  Ship
+# ------
+ship = Ship(screen.get_rect().centerx, screen.get_rect().centery)
+elements.append(ship)
 
 #
 # Run the game loop
@@ -92,7 +99,7 @@ while not quit_game:
     # Check for and handle collisions between objects
     for element in [e for e in elements if e.collidable]:
         other_elements = [e for e in elements if e is not element and e.collidable]
-        elements_collided_with_indexes = element.collidelistall(other_elements)
+        elements_collided_with_indexes = element.rect.collidelistall(other_elements)
         for element_collided_with_index in elements_collided_with_indexes:
             element.collided_with(other_elements[element_collided_with_index])
 
