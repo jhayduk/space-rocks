@@ -13,9 +13,11 @@ python main.py
 """
 import argparse
 import pygame
+import random
 
 from Background import Background
 from ControllerInput import ControllerInput
+from Rock import Rock
 from Ship import Ship
 
 #
@@ -68,6 +70,15 @@ elements.append(background)
 # ------
 ship = Ship(screen.get_rect().centerx, screen.get_rect().centery)
 elements.append(ship)
+
+# -------
+#  Rocks
+# -------
+_NUM_STARTING_ROCKS = 10
+
+for index in range(_NUM_STARTING_ROCKS):
+    rock = Rock(rock_center_x=random.randint(0, screen.get_width()),rock_center_y=random.randint(0, screen.get_height()))
+    elements.append(rock)
 
 #
 # Run the game loop
