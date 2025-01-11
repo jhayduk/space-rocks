@@ -1,6 +1,8 @@
 import pygame
+import typing
 
 from arcade_tools.GameElement import GameElement
+from ControllerInput import ControllerInput
 
 #
 # The image of the ship is assumed to be positioned such that the front of the
@@ -8,6 +10,7 @@ from arcade_tools.GameElement import GameElement
 # be of a ship with an orientation vector of (0, -1) (i.e. ↑)
 #
 _SHIP_IMAGE_FILE = "./images/ship.png"
+_THRUSTER_SPEED_PPM = 0.01
 
 
 class Ship(GameElement):
@@ -51,6 +54,13 @@ class Ship(GameElement):
                 f"Please call pygame.init() before using this class."
             )
 
+        #
+        # Grab a local pointer to the singleton ControllerInput object so that
+        # it does not need to be re-created everytime the update() method is
+        # called.
+        #
+        self._controller_input = ControllerInput()
+
         # Initialize the base GameElement class items.
         super().__init__(_SHIP_IMAGE_FILE)
 
@@ -60,8 +70,55 @@ class Ship(GameElement):
         # Set the starting orientation of the ship to be straight up
         self.orientation = pygame.math.Vector2(0, -1)
 
+    @typing.override
+    def update(self, dt: int, screen: pygame.Surface = None, **kwargs):
+        """
+        Update the orientation, velocity and location of the ship for the
+        next frame.
+
+        There are expected to be two different ship control options: classic
+        and fly-by-wire. The classic ship controls require the player to spin
+        the ship in a given direction and then apply the thruster to move. When
+        using fly-by-wire controls, the player need only point the joystick
+        in the desired direction of movement, and the ship will spin towards
+        that direction automatically while applying thrusters.
+
+        The keyboard implements classic controls. The left and right arrows
+        rotate the ship counter-clockwise and clockwise respectively, the
+        up arrow and/or space bar controls the forward thruster, and the down
+        arrow controls the reverse thruster.
+
+        Any attached joystick implements fly-by-wire controls where the x-axis
+        rotates the ship (left for counter-clockwise and right for clockwise),
+        and the y-axis controls the thruster (forward for the forward thruster
+        and back for the reverse thruster).
+
+        :param dt: The number of milliseconds since the last call to update.
+                    This is used with any movement calculations to help
+                    smooth any jitter in the frame rate.
+        :param screen: The screen the ship will be drawn on. This is used to
+                        know when the ship goes off the screen This parameter
+                        MUST be supplied.
+        :param kwargs: Any other optional key word arguments, such as events,
+                        are ignored by this method.
+        """
+        # Check that required parameters have been supplied
+        if screen is None:
+            raise ValueError(f"A screen parameter MUST be supplied to the {self.__class__.__name__}.update() method")
+
+        #
+        # Calculate the new velocity based the thruster value
+        #
+        # Note that the ship goes faster the longer the thruster is applied.
+        #
+        self.velocity += self.orientation * (self._controller_input.thrust() * _THRUSTER_SPEED_PPM)
+
+        # Move the ship with the new velocity
+        self.rect.x += self.velocity.x * dt
+        self.rect.y += self.velocity.y * dt
+
     #
-    # GameElement's update(), collide_with() and draw() methods are, currently,
+    # GameElement's collide_with() and draw() methods are, currently,
     # sufficient for the Background, so it is used as is. These will all
     # be eventually overridden with custom versions for the ship.
     #
