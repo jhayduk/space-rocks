@@ -13,17 +13,10 @@ This file is specific for the space-rocks game.
 _button_mapping = {
     "default": {
         "name": "default - used if device guid is not in this table",
-        "paddle": {"axis": 0, "name": "Axis 0"},
-        "serve": {"button": 0, "name": "Button 0"}
+        "thrust": {"axis": 1, "name": "Axis 1", "invert": -1}
     },
     "0300e6365e0400003c00000001010000": {
         "name": "Microsoft SideWinder Joystick",
-        "paddle": {"axis": 0, "name": "Joystick"},
-        "serve": {"button": 0, "name": "Trigger"}
-    },
-    "03008fe54c050000cc09000000016800": {
-        "name": "PS4 Controller",
-        "paddle": {"axis": 0, "name": "L-Stick"},
-        "serve": {"button": 0, "name": "╳ button"}
+        "thrust": {"axis": 1, "name": "Axis 1", "invert": -1}
     }
 }

@@ -1,22 +1,22 @@
-"""
-ControllerInput
-
-This class is intended to capture controller input from the user in a unified
-manner so there is one place from which to get information about what the user
-is trying to do, regardless of the method (e.g. keyboard, joystick, trackball)
-being used.
-
-This class is a singleton so that it can be accessed from multiple locations
-without having to pass the single instance around everywhere.
-
-This class is specific for the space-rocks game.
-"""
 import pygame
 
 from controller_config import _button_mapping
 
 
 class ControllerInput:
+    """
+    ControllerInput
+
+    This class is intended to capture controller input from the user in a unified
+    manner so there is one place from which to get information about what the user
+    is trying to do, regardless of the method (e.g. keyboard, joystick, trackball)
+    being used.
+
+    This class is a singleton so that it can be accessed from multiple locations
+    without having to pass the single instance around everywhere.
+
+    This class is specific for the space-rocks game.
+    """
     # The single instance of this class. This is intended to be used internally only.
     _instance = None
 
@@ -33,15 +33,12 @@ class ControllerInput:
 
     def __init__(self):
         if not self._is_initialized:
-            #
-            # Make sure pygame is initialized. Normally, this is expected to be
-            # done before elements are created, so issue a warning if it had to
-            # be done here.
-            #
+            # Make sure pygame is initialized.
             if not pygame.get_init():
-                print(
-                    f"WARNING: pygame was not initialized when a {self.__class__.__name__} object was instantiated. It has now been initialized, but pygame.init() should normally be called before instantiating any instances of the {self.__class__.__name__} class.")
-                pygame.init()
+                raise RuntimeError(
+                    f"Pygame must be initialized before creating a {self.__class__.__name__} object. "
+                    f"Please call pygame.init() before using this class."
+                )
 
             #
             # Now initialize the _joysticks list.
@@ -49,11 +46,11 @@ class ControllerInput:
             self._joysticks = []
             num_joysticks = pygame.joystick.get_count()
             if pygame.joystick.get_count() > 0:
-                print(f"Found {num_joysticks} joysticks")
-                for id in range(num_joysticks):
-                    joystick = pygame.joystick.Joystick(id)
+                print(f"Found {num_joysticks} joystick{'s' if num_joysticks > 1 else ''}")
+                for joystick_id in range(num_joysticks):
+                    joystick = pygame.joystick.Joystick(joystick_id)
                     self._joysticks.append(joystick)
-                    print(f"  Joystick {id}")
+                    print(f"  Joystick {joystick_id}")
                     print(f"    Name: {joystick.get_name()}")
                     print(f"    GUID: {joystick.get_guid()}")
                     print(f"    Number of axis: {joystick.get_numaxes()}")
@@ -85,53 +82,54 @@ class ControllerInput:
                     else:
                         error_message += f'The joystick with the GUID "{guid}" does not have an entry in controller_config.py file and the entry for the "default" GUID'
 
-                    if "paddle" not in button_mapping:
-                        error_message += ' does not have an "paddle" entry in it.'
+                    if "thrust" not in button_mapping:
+                        error_message += ' does not have an "thrust" entry in it.'
                         raise RuntimeError(error_message)
 
-                    # TODO - Allow for both axes and buttons on the joystick to move the paddle
-                    if "axis" not in button_mapping["paddle"]:
-                        error_message += ' does not have an "axis" entry in its "paddle" entry.'
+                    if "axis" not in button_mapping["thrust"]:
+                        error_message += ' does not have an "axis" entry in its "thrust" entry.'
                         raise RuntimeError(error_message)
 
-                    if "serve" not in button_mapping:
-                        error_message += ' does not have an "serve" entry in it.'
+                    if "invert" not in button_mapping["thrust"]:
+                        error_message += ' does not have an "invert" entry in its "thrust" entry.'
                         raise RuntimeError(error_message)
 
-                    if "button" not in button_mapping["serve"]:
-                        error_message += ' does not have an "button" entry in its "serve" entry.'
-                        raise RuntimeError(error_message)
 
             self._is_initialized = True
 
-    def paddle(self) -> float:
+    def thrust(self) -> float:
         """
         The amount that the keyboard or any connected joysticks are being
-        moved in either the right or the left direction. Movement to the right
-        is positive and movement to the left is negative. Each individual
-        device has a range of [-1, 1].
+        moved in either the up or down direction for a keyboard, or the
+        forward and backward direction for a joystick.
 
         Multiple devices are handled by adding the values together. This means
-        that, technically, the output can range from [-num_devices, num_devices].
-        In practice, it is expected that only one x-axis is being manipulated
-        at a time.
+        that, technically, the total thrust can range from
+        [-num_devices, num_devices]. In practice, it is expected that only
+        one y-axis is being manipulated at a time. Just in case, the output of
+        this method is clipped so that it stays in the range of [-1.0, 1.0].
 
-        TODO: Some method of configuration for different devices is needed.
+        Positive thrust is in the same direction as the ships orientation
+        (i.e. the forward thruster provides positive thrust), while negative
+        thrust in 180 degrees from the ship's orientation (i.e. the reverse
+        thruster provides negative thrust).
 
-        :return: float - The amount of horizontal movement being indicated by
-                            all of the input devices combined. Negative is
-                            to the left and positive is to the right.
+        :return: float - The amount of thrust being indicated by all the input
+                            devices combined. Positive thrust is in the
+                            direction of the ship's orientation. Negative
+                            thrust is in the opposite direction.
+        :return:
         """
-        movement = 0.0
+        total_thrust = 0.0
 
         #
         # First, address the keyboard
         #
         keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            movement -= 1.0
-        if keys[pygame.K_RIGHT]:
-            movement += 1.0
+        if keys[pygame.K_UP]:
+            total_thrust += 1.0
+        if keys[pygame.K_DOWN]:
+            total_thrust -= 1.0
 
         #
         # Now, look at any joysticks.
@@ -142,37 +140,15 @@ class ControllerInput:
                 button_mapping = _button_mapping[guid]
             else:
                 button_mapping = _button_mapping["default"]
-            movement += joystick.get_axis(button_mapping["paddle"]["axis"])
+            total_thrust += joystick.get_axis(button_mapping["thrust"]["axis"]) * button_mapping["thrust"]["invert"]
 
         #
-        # Finally, clip the resulting movement value so that is in the range [-1.0, 1.0],
+        # Finally, clip the resulting total_thrust value so that is in the range [-1.0, 1.0],
         # and then return it/
         #
-        movement = max(-1.0, min(1.0, movement))
+        total_thrust = max(-1.0, min(1.0, total_thrust))
 
-        return movement
-
-    def serve(self) -> bool:
-        """
-        Returns True if any of the buttons mapped to "serve" are being pressed
-        at the time this is called, and False otherwise.
-        """
-        # Keyboard
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_SPACE]:
-            return True
-
-        # Joysticks
-        for joystick in self._joysticks:
-            guid = joystick.get_guid()
-            if guid in _button_mapping:
-                button_mapping = _button_mapping[guid]
-            else:
-                button_mapping = _button_mapping["default"]
-            if abs(joystick.get_button(button_mapping["serve"]["button"])) > 0.5:
-                return True
-
-        return False
+        return total_thrust
 
     def show_current_state(self, screen: pygame.Surface):
         """
