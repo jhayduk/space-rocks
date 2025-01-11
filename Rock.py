@@ -55,6 +55,6 @@ class Rock(GameElement):
 
     #
     # GameElement's update(), collide_with() and draw() methods are, currently,
-    # sufficient for the Background, so it is used as is. These will all
+    # sufficient for the rocks, so it is used as is. These will all
     # be eventually overridden with custom versions for the ship.
     #
